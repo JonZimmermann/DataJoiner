@@ -26,9 +26,10 @@ def mistral_retriever(full_data: pd.DataFrame, user_dataset: pd.DataFrame) -> di
         Data Catalog:
         {data_catalog}
 
+        ALWAYS AND ONLY SEARCH IN THE CATALOG FOR A MATCHING DATAFRAME!
         As you are in the backend and your output will be the input to a python function, so ALWAYS answer according to the following scheme:
         "Dataset: [ID-Number of the catalog dataset], columns to join: [column name in user ds] - [column name in catalog dataset]"
-        If you can't find a matching dataset, please answer with "0"
+        If you can't find a matching dataset in the catalog, please answer with "0"
 
         DO NOT write anything beyond the ID-Number of the dataset and the name of the column as specified in the scheme above. This would be a waste of your time and precious resources. A python function takes care of the rest and just splits your string into these two parts so no one cares about anything beyond the scheme "Dataset: [ID-Number of the catalog dataset], column to join: [column name in user ds] - [column name in catalog dataset]"
         Pay extra care to write down the EXACT column names as precision is EXTREMELY important for the later join to work. 

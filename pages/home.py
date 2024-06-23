@@ -45,7 +45,7 @@ layout = dbc.Container(
                                                             ]
                                                         ),
                                                         dcc.Upload(
-                                                            id="upload",
+                                                            id="dataframe-upload",
                                                             children=html.Div(
                                                                 [
                                                                     "Ziehen sie oder ",
@@ -134,35 +134,29 @@ layout = dbc.Container(
                         ),
                         dbc.AccordionItem(
                             [
-                                html.Div(
+                                dcc.Tabs(
                                     [
-                                        dcc.Tabs(
+                                        dcc.Tab(
                                             [
-                                                dcc.Tab(
+                                                html.Div(
                                                     [
-                                                        html.Div(
-                                                            [
-                                                                dbc.Button(
-                                                                    "Download CSV",
-                                                                    id="download-button",
-                                                                    color="primary",
-                                                                    className="mt-3",
-                                                                    active=False,
-                                                                ),
-                                                                dcc.Download(
-                                                                    id="download-dataframe"
-                                                                ),
-                                                            ]
+                                                        dbc.Button(
+                                                            "Download CSV",
+                                                            id="download-button",
+                                                            color="primary",
+                                                            className="mt-3",
+                                                            disabled=True,
                                                         ),
-                                                        html.Div(
-                                                            id="data-table-import"
+                                                        dcc.Download(
+                                                            id="download-dataframe"
                                                         ),
-                                                    ],
-                                                    label="Datentabelle",
-                                                    id="data-table-tab",
+                                                    ]
                                                 ),
-                                            ]
-                                        )
+                                                html.Div(id="data-table-import"),
+                                            ],
+                                            label="Datentabelle",
+                                            id="data-table-tab",
+                                        ),
                                     ]
                                 )
                             ],
@@ -172,6 +166,7 @@ layout = dbc.Container(
                     ],
                     active_item="upload",
                     always_open=True,
+                    id="accordion",
                 )
             ],
             style={"padding": "30px"},
@@ -186,8 +181,9 @@ layout = dbc.Container(
 
 @callback(
     Output("data-table-import", "children"),
-    Input("upload", "contents"),
-    State("upload", "filename"),
+    Output("accordion", "active_item"),
+    Input("dataframe-upload", "contents"),
+    State("dataframe-upload", "filename"),
 )
 def process_uploaded_file(contents, filename):
     """
@@ -215,52 +211,66 @@ def process_uploaded_file(contents, filename):
                 )
 
             except:
-                return gm.return_error_popup(
-                    3,
-                    "Datei konnte nicht gelesen werden, bitte prüfen Sie die Anforderungen an csv-Dateien, überprüfen Sie auch die Datumsformate",
-                )
+                return [
+                    gm.return_error_popup(
+                        "Datei konnte nicht gelesen werden, bitte prüfen Sie die Anforderungen an csv-Dateien, überprüfen Sie auch die Datumsformate",
+                    ),
+                    "upload",
+                ]
 
         else:
-            return gm.return_error_popup(
-                3,
-                "Ungültiges Dateiformat. Bitte verwenden Sie eine CSV-Datei",
-            )
+            return [
+                gm.return_error_popup(
+                    "Ungültiges Dateiformat. Bitte verwenden Sie eine CSV-Datei",
+                ),
+                "upload",
+            ]
 
-        return gm.create_table(df)
+        return gm.create_table(df), "data"
 
     else:
         raise dash.exceptions.PreventUpdate
 
 
 @callback(
-    Output("data-table-import", "children"),
-    Output("download-button", "active"),
+    Output("data-table-tab", "children"),
+    Output("download-button", "disabled"),
     Input("search-button", "n_clicks"),
     State("tags-dropdown", "value"),
     State("keys-dropdown", "value"),
+    prevent_initial_call=True,
 )
-def joiner(_, data, tag, keys):
+def joiner(_, tag, keys):
     catalog = pd.read_json(
         "Lib/data_library.json",
     )
-
-    catalog = catalog[
-        (catalog["Keywords"].apply(lambda x: any(elem in x for elem in keys)))
-        & (catalog.Tag == tag)
-    ]
+    if tag is not None and keys is not None:
+        catalog = catalog[
+            (catalog["Keywords"].apply(lambda x: any(elem in x for elem in keys)))
+            & (catalog.Tag == tag)
+        ]
+    elif tag is None:
+        catalog = catalog[
+            (catalog["Keywords"].apply(lambda x: any(elem in x for elem in keys)))
+        ]
+    elif keys is None:
+        catalog = catalog[(catalog.Tag == tag)]
 
     user_dataset = manager.get_data()
 
     # solution = mistral_retriever(catalog, user_dataset)
     solution = {
-        "dataset_id": 0,
+        "dataset_id": 1,
         "col_name_user": "Tatort",
         "col_name_catalog": "Tatort",
     }
 
     if solution is None:
         # return an error message via popup
-        pass
+        return [
+            gm.return_error_popup("No Matching DataFrame could be identified"),
+            True,
+        ]
 
     else:
         candidate_link = catalog.loc[solution["dataset_id"], "CSV"]
@@ -280,12 +290,17 @@ def joiner(_, data, tag, keys):
 
             added_columns = list(combined_df.columns[len(user_dataset.columns) :])
 
-        except KeyError:
+        except:
             # error popup
-            pass
+            return [
+                gm.return_error_popup(
+                    "Unfortunately, there was a problem in the integration process. Please report the error to the developers and try again later."
+                ),
+                True,
+            ]
 
         # wrap dataset inside plotly component
-        return gm.create_table(combined_df, highlights=added_columns), True
+        return gm.create_table(combined_df, highlights=added_columns), False
 
 
 @callback(

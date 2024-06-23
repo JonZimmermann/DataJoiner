@@ -67,7 +67,7 @@ def create_table(df: pd.DataFrame, highlights: list = None):
     # )
 
 
-def return_error_popup(n_args: int, error_message: str) -> dbc.Modal:
+def return_error_popup(error_message: str):
     """
     This function serves to return a popup for a Dashboard and shall be used inside a callback for exceptions.
         Input:
@@ -77,15 +77,13 @@ def return_error_popup(n_args: int, error_message: str) -> dbc.Modal:
             dbc.Modal: A dashboard component that pops up
             None
     """
-    yield dbc.Modal(
+    return dbc.Modal(
         [
             dbc.ModalHeader(dbc.ModalTitle("Warnung")),
             dbc.ModalBody(error_message),
         ],
         is_open=True,
     )
-    for _ in range(n_args - 1):
-        yield None
 
 
 def extract_csv_link(soup: BeautifulSoup) -> str:

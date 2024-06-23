@@ -39,8 +39,6 @@ app.layout = dbc.Container(
             ],
             color="#0077ae",
         ),
-        # This component will store the DataFrame used in this session in it's data attribute for the duration of the session, data kept on client side with id as key
-        dcc.Store(id="data-store", storage_type="memory"),
         dash.page_container,
     ]
 )
