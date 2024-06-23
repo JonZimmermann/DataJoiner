@@ -1,0 +1,14 @@
+# Logdateien
+*.log
+
+# Konfiguration der Entwicklungsumgebung
+.vscode/
+
+# Byte-compiled 
+**/__pycache__/
+
+#Dateien
+**.csv
+**.xlsx
+**.ipynb
+llm.py
