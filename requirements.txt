@@ -1,0 +1,8 @@
+dash
+pandas
+dash_bootstrap_components
+schedule
+bs4
+feedparser
+plotly
+ollama
