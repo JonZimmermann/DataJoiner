@@ -16,7 +16,7 @@ server = app.server
 
 # A Container component. Containers provide a means to center and horizontally pad the site’s contents.
 app.layout = dbc.Container(
-    [  # Overhead Navigation Bar with the Deloitte Logo, a Title and a Button to unfold the Offacnvas
+    [  # Overhead Navigation Bar with the Logo and a Title
         dbc.Navbar(
             [
                 dbc.NavbarBrand(
@@ -39,6 +39,7 @@ app.layout = dbc.Container(
             ],
             color="#0077ae",
         ),
+        # imports the page structure
         dash.page_container,
     ]
 )
@@ -46,10 +47,12 @@ app.layout = dbc.Container(
 ###############################################################################################
 # CALLBACKS
 ###############################################################################################
-
+# for multiple callbacks referring to the same entity etx. all Callbacks can be migrated to this section
 
 ###############################################################################################
 # LIBRARY UPDATE
+###############################################################################################
+
 schedule.every().day.at("10:30").do(library_update)
 
 

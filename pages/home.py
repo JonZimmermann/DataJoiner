@@ -1,10 +1,9 @@
 import dash
-from dash import html, callback, Input, Output, State, dcc, dash_table
+from dash import html, callback, Input, Output, State, dcc
 import dash_bootstrap_components as dbc
 import pandas as pd
 import base64
 import io
-import plotly.figure_factory as ff
 import backend.general_methods as gm
 from backend.data_manager import manager
 from backend.llm import mistral_retriever
@@ -18,22 +17,29 @@ dash.register_page(__name__, path="/")
 layout = dbc.Container(
     [
         html.Div(
-            [  # Accordion component, Filled with Items, could be extended with further Items if necessary
+            [  # Accordion component: allows multiple sections to expand and collapse
                 dbc.Accordion(
                     [
+                        # First Accordion Item: Upload File section
                         dbc.AccordionItem(
                             [
                                 html.Div(
-                                    [  # Tabs component, Filled with Tab-Component, could be replaced in later iterations or extended with further Items if necessary
+                                    [
+                                        # Tabs component: allows for tabbed navigation within the Upload File section
+                                        # could be replaced in later iterations or extended with further Items if necessary
                                         dcc.Tabs(
                                             [
+                                                # First Tab: Import from CSV or XLSX file
                                                 dcc.Tab(
                                                     [
                                                         html.Br(),
+                                                        # HEader
                                                         html.H3("Import aus csv-Datei"),
+                                                        # Instruction
                                                         html.P(
-                                                            "Laden Sie hier eine xlsx-Datei oder eine csv-Datei hoch. Die csv-Datei sollte den folgenden Anforderungen genügen:"
+                                                            "Laden Sie hier eine csv-Datei hoch. Die csv-Datei sollte den folgenden Anforderungen genügen:"
                                                         ),
+                                                        # Ordered list specifying file requirements
                                                         html.Ol(
                                                             [
                                                                 html.Li(
@@ -44,6 +50,7 @@ layout = dbc.Container(
                                                                 ),
                                                             ]
                                                         ),
+                                                        # Upload component for CSV files
                                                         dcc.Upload(
                                                             id="dataframe-upload",
                                                             children=html.Div(
@@ -54,6 +61,7 @@ layout = dbc.Container(
                                                                     ),
                                                                 ]
                                                             ),
+                                                            # Styling for the upload box
                                                             style={
                                                                 "width": "50%",
                                                                 "height": "60px",
@@ -77,18 +85,21 @@ layout = dbc.Container(
                             title="Upload File",
                             item_id="upload",
                         ),
+                        # Second Accordion Item: Selection of Topics and Keywords section
                         dbc.AccordionItem(
                             [
                                 # all tags as Dropdown#
                                 html.Div(
                                     [
+                                        # Row and column structure for the different dropdown menus
                                         dbc.Row(
                                             [
+                                                # Column for tags dropdown
                                                 dbc.Col(
                                                     html.Div(
                                                         [
                                                             dcc.Dropdown(
-                                                                options=gm.get_tags(),
+                                                                options=gm.get_tags(),  # Options to choose tags from
                                                                 clearable=True,
                                                                 searchable=True,
                                                                 placeholder="Thema ihres Datensatzes",
@@ -97,6 +108,7 @@ layout = dbc.Container(
                                                         ]
                                                     )
                                                 ),
+                                                # Column for the search button
                                                 dbc.Col(
                                                     html.Div(
                                                         [
@@ -112,10 +124,11 @@ layout = dbc.Container(
                                                         ]
                                                     )
                                                 ),
+                                                # Column for keywords dropdown
                                                 dbc.Col(
                                                     html.Div(
                                                         dcc.Dropdown(
-                                                            options=gm.get_keywords(),
+                                                            options=gm.get_keywords(),  # Options to choose keys from
                                                             clearable=True,
                                                             searchable=True,
                                                             placeholder="Schlüsselwörter zu ihrem Datensatzes",
@@ -132,14 +145,17 @@ layout = dbc.Container(
                             title="Auswahl von Themen und Schlüsselwörtern",
                             item_id="topics_keys",
                         ),
+                        # Third Accordion Item: Data section
                         dbc.AccordionItem(
                             [
+                                # Tabs not strictly necessary. Design choice as it looked well + easily extendable with more data info
                                 dcc.Tabs(
                                     [
                                         dcc.Tab(
                                             [
                                                 html.Div(
                                                     [
+                                                        # Button to download the data as CSV, initially disabled, enabled after data matching
                                                         dbc.Button(
                                                             "Download CSV",
                                                             id="download-button",
@@ -147,11 +163,13 @@ layout = dbc.Container(
                                                             className="mt-3",
                                                             disabled=True,
                                                         ),
+                                                        # Component for downloading data
                                                         dcc.Download(
                                                             id="download-dataframe"
                                                         ),
                                                     ]
                                                 ),
+                                                # Placeholder for the data table
                                                 html.Div(id="data-table-import"),
                                             ],
                                             label="Datentabelle",
@@ -164,8 +182,8 @@ layout = dbc.Container(
                             item_id="data",
                         ),
                     ],
-                    active_item="upload",
-                    always_open=True,
+                    active_item="upload",  # Initially open accordion item
+                    always_open=True,  # All items can be open at the same time
                     id="accordion",
                 )
             ],
@@ -241,29 +259,65 @@ def process_uploaded_file(contents, filename):
     prevent_initial_call=True,
 )
 def joiner(_, tag, keys):
+    """
+    Filter the data catalog based on user-selected tags and keywords,
+    and attempt to join the user-provided dataset with a matching dataset from the catalog.
+    The match is provided through the use of a Large Language Model
+
+    Parameters:
+        _: Placeholder for the unused parameter n_clicks
+        tag: The selected tag to filter datasets in the catalog.
+        keys: The selected keywords to filter datasets in the catalog.
+
+    Returns:
+        tuple: A tuple containing:
+            - A Dash component (DataTable or error popup).
+            - A boolean indicating whether downloading the dataframe is enabled or not (only enabled if dataframe is updated)
+
+    Function logic:
+    1. Load the data catalog from the JSON file it is stored in.
+    2. Filter the catalog based on the provided tag and/or keywords.
+    3. Retrieve the user's dataset from the DataManager instance.
+    4. Use a Large Language Model to find the best matching dataset from the catalog.
+    5. Attempt to join the user dataset with the candidate dataset from the catalog.
+    6. If successful, create and return a DataTable with the combined dataset and allow downloading the dataset
+    7. If unsuccessful, return an error popup message.
+
+    Notes:
+        - The machine learning model part is commented out for demonstration. It must be uncommented if enough resources are available
+        - Proper error handling ensures that any issues during the join process result in an informative error popup.
+    """
+
     catalog = pd.read_json(
         "Lib/data_library.json",
     )
-    if tag is not None and keys is not None:
-        catalog = catalog[
-            (catalog["Keywords"].apply(lambda x: any(elem in x for elem in keys)))
-            & (catalog.Tag == tag)
-        ]
+    if tag is None and keys is None:
+        pass
+
     elif tag is None:
         catalog = catalog[
             (catalog["Keywords"].apply(lambda x: any(elem in x for elem in keys)))
         ]
+
     elif keys is None:
         catalog = catalog[(catalog.Tag == tag)]
 
+    else:
+        catalog = catalog[
+            (catalog["Keywords"].apply(lambda x: any(elem in x for elem in keys)))
+            & (catalog.Tag == tag)
+        ]
+
     user_dataset = manager.get_data()
 
-    # solution = mistral_retriever(catalog, user_dataset)
     solution = {
         "dataset_id": 1,
         "col_name_user": "Tatort",
         "col_name_catalog": "Tatort",
     }
+
+    # if this line is enabled, the model uses the LLM, used in production, disabled for demo
+    # solution = mistral_retriever(catalog, user_dataset) # if this line is enabled, the model uses the LLM, used for
 
     if solution is None:
         # return an error message via popup
@@ -294,12 +348,12 @@ def joiner(_, tag, keys):
             # error popup
             return [
                 gm.return_error_popup(
-                    "Unfortunately, there was a problem in the integration process. Please report the error to the developers and try again later."
+                    f"Unfortunately, there was a problem in the integration process. Please report the error to the developers and try again later. Catalog Reference: {solution['dataset_id']}"
                 ),
                 True,
             ]
 
-        # wrap dataset inside plotly component
+        # wrap dataset inside plotly component, allow download
         return gm.create_table(combined_df, highlights=added_columns), False
 
 
@@ -309,4 +363,5 @@ def joiner(_, tag, keys):
     prevent_initial_call=True,
 )
 def download(_):
+    """Downloads the updated csv file"""
     return dcc.send_data_frame(manager.get_data(), "data_table.csv")

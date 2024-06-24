@@ -1,26 +1,34 @@
 from dash import html, dash_table
 import dash_bootstrap_components as dbc
 import pandas as pd
-import feedparser
 from bs4 import BeautifulSoup
 import io
 import requests
 from backend.data_manager import manager
 
 
-def create_table(df: pd.DataFrame, highlights: list = None):
+def create_table(df: pd.DataFrame, highlights: list = None) -> list:
     """
-    This function takes a DataFrame and turns it into a dash DataTable and converts it to a string in json-Format
-        Input:
-            df: DataFrame
-        Output:
-            list with Br-Component and DataTable
-            str
-            str
+    Converts a DataFrame into a Dash DataTable and returns it along with a line break component.
+
+    If highlights are provided, specific columns will be highlighted.
+
+    Parameters:
+    ----------
+    df : pd.DataFrame
+        The DataFrame to be displayed in the Dash DataTable.
+    highlights : list, optional
+        A list of column names to be highlighted in the DataTable (default is None).
+
+    Returns:
+    -------
+    list
+        A list containing a Dash HTML component (line break) and the Dash DataTable.
     """
+
     if highlights is None:
 
-        # Display DataFrame in data-table-import tab
+        ## Display DataFrame in a Data Table without highlights
         data_table = dash_table.DataTable(
             data=df.to_dict("records"),
             columns=[{"name": col, "id": col} for col in df.columns],
@@ -35,6 +43,7 @@ def create_table(df: pd.DataFrame, highlights: list = None):
         )
 
     else:
+        # Highlight the new columns in the Data Table
         style_data_conditional = [
             {
                 "if": {"column_id": col},
@@ -57,26 +66,27 @@ def create_table(df: pd.DataFrame, highlights: list = None):
             style_data_conditional=style_data_conditional,
         )
 
-    # Display output of pandas.describe in data-structure-import tab
+    # Store DataFrame in Data Manager
     manager.set_data(df)
 
     return [html.Br(), data_table]
-    # return (
-    #     [html.Br(), data_table],
-    #     df.to_json(date_format="iso", orient="split"),
-    # )
 
 
-def return_error_popup(error_message: str):
+def return_error_popup(error_message: str) -> dbc.Modal:
     """
-    This function serves to return a popup for a Dashboard and shall be used inside a callback for exceptions.
-        Input:
-            n_args: Number of arguments, the callback expects to return
-            error_message: Error Message that should be displayed
-        Output:
-            dbc.Modal: A dashboard component that pops up
-            None
+    Returns a Dash Bootstrap Components Modal to display an error message.
+
+    Parameters:
+    ----------
+    error_message : str
+        The error message to be displayed in the popup.
+
+    Returns:
+    -------
+    dbc.Modal
+        A dbc Modal with the error message.
     """
+
     return dbc.Modal(
         [
             dbc.ModalHeader(dbc.ModalTitle("Warnung")),
@@ -88,11 +98,17 @@ def return_error_popup(error_message: str):
 
 def extract_csv_link(soup: BeautifulSoup) -> str:
     """
-    This function extracts the links to the csv files from the detail pages of the datasets on govdata
-        Input:
-            soup: BeautifulSoup source code from the detail pages
-        Output:
-            str: string with the link to the csv file
+    Extracts the link to the CSV file from the detail pages of the datasets on govdata.
+
+    Parameters:
+    ----------
+    soup : BeautifulSoup
+        The BeautifulSoup object containing the parsed HTML of the detail page.
+
+    Returns:
+    -------
+    str
+        The link to the CSV file.
     """
 
     for a_tag in soup.find_all("a", href=True):
@@ -103,11 +119,17 @@ def extract_csv_link(soup: BeautifulSoup) -> str:
 
 def extract_keywords(soup: BeautifulSoup) -> list:
     """
-    This function extracts the keywords from the detail pages of the datasets on govdata
-        Input:
-            soup: BeautifulSoup source code from the detail pages
-        Output:
-            list: list with the keywords as strings
+    Extracts the keywords from the detail pages of the datasets on govdata.
+
+    Parameters:
+    ----------
+    soup : BeautifulSoup
+        The BeautifulSoup object containing the parsed HTML of the detail page.
+
+    Returns:
+    -------
+    list
+        A list of keywords extracted from the detail page.
     """
     try:
         dl_tag = soup.find("dl", class_="taglist space-bottom inline-list")
@@ -124,12 +146,19 @@ def extract_keywords(soup: BeautifulSoup) -> list:
 
 def detect_sep(csv: str, num_lines=5) -> int:
     """
-    This function is used to detect wether the csv files use comma or semicolon as separators
-        Input:
-            csv: csv file as string
-            num_lines: number of lines used to determine the correct separator
-        Output:
-            str: either comma or semicolon
+    Detects whether the CSV file uses a comma or semicolon as the separator.
+
+    Parameters:
+    ----------
+    csv : str
+        The CSV file content as a string.
+    num_lines : int, optional
+        The number of lines used to determine the correct separator (default is 5).
+
+    Returns:
+    -------
+    str
+        The detected separator, either a comma or semicolon.
     """
 
     lines = csv.splitlines()[:num_lines]
@@ -144,11 +173,12 @@ def detect_sep(csv: str, num_lines=5) -> int:
 
 def get_tags() -> list:
     """
-    This function is used to return the different tags of the csv files as list
-        Input:
-            None
-        Output:
-            list: a list with the tags
+    Returns the different tags of the CSV files on govdata as a list.
+
+    Returns:
+    -------
+    list
+        A list of tags, each represented as a dictionary with 'label' and 'value'.
     """
 
     full_data = pd.read_json(
@@ -165,11 +195,12 @@ def get_tags() -> list:
 
 def get_keywords() -> list:
     """
-    This function is used to return the different keywords of the csv files as list
-        Input:
-            None
-        Output:
-            list: a list with the keywords
+    Returns the different keywords of the CSV files on govdata as a list.
+
+    Returns:
+    -------
+    list
+        A list of keywords, each represented as a dictionary with 'label' and 'value'.
     """
 
     full_data = pd.read_json(
@@ -182,11 +213,17 @@ def get_keywords() -> list:
 
 def get_govdata_dataset(link: str) -> pd.DataFrame:
     """
-    This function retrieves a dataset from govdata by link
-        Input:
-            link: a link to the csv file
-        Output:
-            pd.Dataframe: govdata dataframe
+    Retrieves a dataset from govdata by the given link.
+
+    Parameters:
+    ----------
+    link : str
+        The link to the CSV file.
+
+    Returns:
+    -------
+    pd.DataFrame
+        The retrieved dataset as a Pandas DataFrame.
     """
     response = requests.get(link)
 
