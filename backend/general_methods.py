@@ -40,6 +40,11 @@ def create_table(df: pd.DataFrame, highlights: list = None) -> list:
                 "overflow": "hidden",
                 "textOverflow": "ellipsis",
             },
+            sort_action="native",
+            filter_action="native",
+            page_action="native",
+            page_current=0,
+            page_size=25,
         )
 
     else:
@@ -64,6 +69,11 @@ def create_table(df: pd.DataFrame, highlights: list = None) -> list:
                 "textOverflow": "ellipsis",
             },
             style_data_conditional=style_data_conditional,
+            sort_action="native",
+            filter_action="native",
+            page_action="native",
+            page_current=0,
+            page_size=25,
         )
 
     # Store DataFrame in Data Manager

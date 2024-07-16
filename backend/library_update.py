@@ -5,7 +5,6 @@ import requests
 import backend.general_methods as gm
 
 
-# NEEDS Regular execution -> DONE
 def library_update():
     """
     Updates the internal metadata library on govdata using an RSS feed to retrieve datasets available in CSV format.
@@ -65,7 +64,7 @@ def library_update():
             tag.append("No Tag")
         keywords.append(kw)
 
-    # Create a DataFrame from the metadata lists, orming the data catalog
+    # Create a DataFrame from the metadata lists, forming the data catalogue
     df = pd.DataFrame(
         {
             "Title": titles,
@@ -91,7 +90,7 @@ def library_update():
             top_ten_list.append("NA")
             continue
 
-        # Check for bad data to keep the data catalog in good shape
+        # Check for bad data to keep the data catalogue in good shape
         if "Unnamed: 1" in odata.columns and "Unnamed: 2" in odata.columns:
             df.drop(i, axis=0, inplace=True)
         elif len(dict(odata.dtypes)) > 1:
@@ -101,12 +100,12 @@ def library_update():
             c_type_list.append("NA")
             top_ten_list.append("NA")
 
-    # Add column types and top ten rows to the data catalog
+    # Add column types and top ten rows to the data catalogue
     df["Col_and_typ"] = c_type_list
     df["top_ten_cols"] = top_ten_list
     df = df.reset_index(drop=True)
 
-    # Load the existing data catalog and combine it with the new records, remove duplicates
+    # Load the existing data catalogue and combine it with the new records, remove duplicates
     full_data = pd.read_json(
         "Lib/data_library.json",
     )
@@ -116,7 +115,7 @@ def library_update():
     )
     full_data_ext = full_data_ext.loc[full_data_ext["top_ten_cols"] != "NA"]
 
-    # The updated data catalog is saved to the JSON file
+    # The updated data catalogue is saved to the JSON file
     full_data_ext.to_json(
         "Lib/data_library.json", default_handler=str, orient="records", indent=4
     )

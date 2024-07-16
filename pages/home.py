@@ -29,7 +29,7 @@ layout = dbc.Container(
                                         # could be replaced in later iterations or extended with further Items if necessary
                                         dcc.Tabs(
                                             [
-                                                # First Tab: Import from CSV or XLSX file
+                                                # First Tab: Import from CSV file
                                                 dcc.Tab(
                                                     [
                                                         html.Br(),
@@ -46,7 +46,7 @@ layout = dbc.Container(
                                                                     "Trennzeichen:   ';'"
                                                                 ),
                                                                 html.Li(
-                                                                    "Dezimaltrennzeichen:   '.'"
+                                                                    "Dezimaltrennzeichen:   ','"
                                                                 ),
                                                             ]
                                                         ),
@@ -74,7 +74,7 @@ layout = dbc.Container(
                                                             },
                                                         ),
                                                     ],
-                                                    label="Import aus csv oder xlsx-Datei",
+                                                    label="Import aus csv-Datei",
                                                 ),
                                             ]
                                         )
@@ -116,8 +116,10 @@ layout = dbc.Container(
                                                                 [
                                                                     dbc.Button(
                                                                         "Datensätze suchen",
-                                                                        color="primary",
                                                                         id="search-button",
+                                                                        style={
+                                                                            "background-color": "#00305D"
+                                                                        },
                                                                     )
                                                                 ]
                                                             )
@@ -157,11 +159,13 @@ layout = dbc.Container(
                                                     [
                                                         # Button to download the data as CSV, initially disabled, enabled after data matching
                                                         dbc.Button(
-                                                            "Download CSV",
+                                                            "CSV herunterladen",
                                                             id="download-button",
-                                                            color="primary",
                                                             className="mt-3",
                                                             disabled=True,
+                                                            style={
+                                                                "background-color": "#00305D"
+                                                            },
                                                         ),
                                                         # Component for downloading data
                                                         dcc.Download(
@@ -198,14 +202,15 @@ layout = dbc.Container(
 
 
 @callback(
-    Output("data-table-import", "children"),
-    Output("accordion", "active_item"),
+    Output("data-table-import", "children", allow_duplicate=True),
+    Output("accordion", "active_item", allow_duplicate=True),
     Input("dataframe-upload", "contents"),
     State("dataframe-upload", "filename"),
+    prevent_initial_call=True,
 )
 def process_uploaded_file(contents, filename):
     """
-    This Callback takes the uploaded file as Base64 String which should be a csv or xlsx and converts it to a pd.DataFrame.
+    This Callback takes the uploaded file as Base64 String which should be a csv and converts it to a pd.DataFrame.
     The Dataframe is then passed to table_and_structure(), which processes it and generates a dash DataTable, a string with the output of df.describe() and
     a json String to be stored in the Store component in app.py
         Input:
@@ -224,7 +229,7 @@ def process_uploaded_file(contents, filename):
                 df = pd.read_csv(
                     io.StringIO(decoded.decode("iso-8859-1")),
                     delimiter=";",
-                    decimal=".",
+                    decimal=",",
                     parse_dates=True,
                 )
 
@@ -244,15 +249,16 @@ def process_uploaded_file(contents, filename):
                 "upload",
             ]
 
-        return gm.create_table(df), "data"
+        return gm.create_table(df), "topics_keys"
 
     else:
         raise dash.exceptions.PreventUpdate
 
 
 @callback(
-    Output("data-table-tab", "children"),
+    Output("data-table-import", "children"),
     Output("download-button", "disabled"),
+    Output("accordion", "active_item"),
     Input("search-button", "n_clicks"),
     State("tags-dropdown", "value"),
     State("keys-dropdown", "value"),
@@ -288,9 +294,7 @@ def joiner(_, tag, keys):
         - Proper error handling ensures that any issues during the join process result in an informative error popup.
     """
 
-    catalog = pd.read_json(
-        "Lib/data_library.json",
-    )
+    catalog = pd.read_json("Lib/data_library.json", encoding="iso-8859-1")
     if tag is None and keys is None:
         pass
 
@@ -311,9 +315,9 @@ def joiner(_, tag, keys):
     user_dataset = manager.get_data()
 
     solution = {
-        "dataset_id": 1,
-        "col_name_user": "Tatort",
-        "col_name_catalog": "Tatort",
+        "dataset_id": 4,
+        "col_name_user": "Tatb-Nr.",
+        "col_name_catalog": "Tatb-Nr.",
     }
 
     # if this line is enabled, the model uses the LLM, used in production, disabled for demo
@@ -322,8 +326,11 @@ def joiner(_, tag, keys):
     if solution is None:
         # return an error message via popup
         return [
-            gm.return_error_popup("No Matching DataFrame could be identified"),
+            gm.return_error_popup(
+                "Leider konnte kein passender Datensatz gefunden werden."
+            ),
             True,
+            "topics_keys",
         ]
 
     else:
@@ -348,13 +355,14 @@ def joiner(_, tag, keys):
             # error popup
             return [
                 gm.return_error_popup(
-                    f"Unfortunately, there was a problem in the integration process. Please report the error to the developers and try again later. Catalog Reference: {solution['dataset_id']}"
+                    f"Leider gab es ein Problem beim Integrationsprozess. Bitte zeigen Sie den Fehler den Entwicklern an und versuchen Sie es später noch einmal. Catalog Reference: {solution['dataset_id']}"
                 ),
                 True,
+                "topics_keys",
             ]
 
         # wrap dataset inside plotly component, allow download
-        return gm.create_table(combined_df, highlights=added_columns), False
+        return gm.create_table(combined_df, highlights=added_columns), False, "data"
 
 
 @callback(
@@ -364,4 +372,4 @@ def joiner(_, tag, keys):
 )
 def download(_):
     """Downloads the updated csv file"""
-    return dcc.send_data_frame(manager.get_data(), "data_table.csv")
+    return dcc.send_data_frame(manager.get_data().to_csv, "data_table.csv")
