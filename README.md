@@ -7,7 +7,7 @@ This project is part of the master thesis 'From Data to Discovery: An Applicatio
 - Clone or download the application code from the GitHub repository
 - check the version of your Python installation by entering ```python3 -V``` in your console 
 - The packages are installed by running the command ```pip install -r requirements.txt``` in your console.
-- Run ```app.py``` to start the dashboard locally
+- Run ```python3 app.py``` to start the dashboard locally
 - The application may take some time to start
 
 2. Required:<br>
