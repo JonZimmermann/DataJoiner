@@ -32,12 +32,14 @@ layout = dbc.Container(
                                                 # First Tab: Import from CSV file
                                                 dcc.Tab(
                                                     [
-                                                        html.Br(),
-                                                        # HEader
-                                                        html.H3("Import aus csv-Datei"),
-                                                        # Instruction
+                                                        # Section Description
                                                         html.P(
-                                                            "Laden Sie hier eine csv-Datei hoch. Die csv-Datei sollte den folgenden Anforderungen genügen:"
+                                                            [
+                                                                "Diese App identifiziert und ergänzt Datensätze, die den vom Nutzer bereitgestellten Daten ähneln, mit öffentlich verfügbaren offenen Daten von der Plattform GovData. ",
+                                                                "Laden Sie hier eine csv-Datei mit dem Datensatz hoch, den sie anreichern möchten. ",
+                                                                html.Br(),
+                                                                "Ihre csv-Datei sollte den folgenden Anforderungen genügen:",
+                                                            ]
                                                         ),
                                                         # Ordered list specifying file requirements
                                                         html.Ol(
@@ -82,7 +84,7 @@ layout = dbc.Container(
                                     style={"padding": "15px"},
                                 ),
                             ],
-                            title="Upload File",
+                            title="Datei hochladen",
                             item_id="upload",
                         ),
                         # Second Accordion Item: Selection of Topics and Keywords section
@@ -91,6 +93,16 @@ layout = dbc.Container(
                                 # all tags as Dropdown#
                                 html.Div(
                                     [
+                                        # Section Description
+                                        html.P(
+                                            [
+                                                "An dieser Stelle konnen Sie die verfügbaren Datensätze von GovData filtern um ihre Suche zu verfeinern.",
+                                                html.Br(),
+                                                "Nutzen Sie die beiden Dropdown-Menüs um Themen und Schlagwörter zu wählen, die zu Ihrem Datensatz passen. ",
+                                                "Indem Sie anfangen zu tippen können Sie  beide Menüs durchsuchen ",
+                                                "Sie können sowohl Themen als auch Schlagwörter auswählen, oder nur eines von beiden, oder kein Thema und kein Schlagwort.",
+                                            ]
+                                        ),
                                         # Row and column structure for the different dropdown menus
                                         dbc.Row(
                                             [
@@ -151,36 +163,33 @@ layout = dbc.Container(
                         dbc.AccordionItem(
                             [
                                 # Tabs not strictly necessary. Design choice as it looked well + easily extendable with more data info
-                                dcc.Tabs(
+                                html.Div(
                                     [
-                                        dcc.Tab(
+                                        # Section Description
+                                        html.P(
                                             [
-                                                html.Div(
-                                                    [
-                                                        # Button to download the data as CSV, initially disabled, enabled after data matching
-                                                        dbc.Button(
-                                                            "CSV herunterladen",
-                                                            id="download-button",
-                                                            className="mt-3",
-                                                            disabled=True,
-                                                            style={
-                                                                "background-color": "#00305D"
-                                                            },
-                                                        ),
-                                                        # Component for downloading data
-                                                        dcc.Download(
-                                                            id="download-dataframe"
-                                                        ),
-                                                    ]
-                                                ),
-                                                # Placeholder for the data table
-                                                html.Div(id="data-table-import"),
-                                            ],
-                                            label="Datentabelle",
-                                            id="data-table-tab",
+                                                "Hier können Sie nun den integrierten Datensatz betrachten. ",
+                                                "Blau hervorgehoben sind die Spalten, mit denen ihr Datensatz aus einem offenen Datensatz angereichert wurde. ",
+                                                "Die Datentabelle ist mithilfe der Zellen unter dem Spaltentitel filterbar. ",
+                                                "Wird der Datensatz nicht vollständig dargestellt, können Sie am unteren Ende der Tabelle zur Seite scrollen",
+                                                html.Br(),
+                                                "Klicken Sie auf den Button mit dem Titel 'CSV herunterladen' um den Datensatz auf Ihr System herunterzuladen.",
+                                            ]
                                         ),
+                                        # Button to download the data as CSV, initially disabled, enabled after data matching
+                                        dbc.Button(
+                                            "CSV herunterladen",
+                                            id="download-button",
+                                            className="mt-3",
+                                            disabled=True,
+                                            style={"background-color": "#00305D"},
+                                        ),
+                                        # Component for downloading data
+                                        dcc.Download(id="download-dataframe"),
                                     ]
-                                )
+                                ),
+                                # Placeholder for the data table
+                                html.Div(id="data-table-import"),
                             ],
                             title="Daten",
                             item_id="data",
@@ -211,15 +220,13 @@ layout = dbc.Container(
 def process_uploaded_file(contents, filename):
     """
     This Callback takes the uploaded file as Base64 String which should be a csv and converts it to a pd.DataFrame.
-    The Dataframe is then passed to table_and_structure(), which processes it and generates a dash DataTable, a string with the output of df.describe() and
-    a json String to be stored in the Store component in app.py
+    The Dataframe is then passed to table_and_structure(), which processes it and generates a dash DataTable
         Input:
             contents: str Base64
             filename: str Filename
         Output:
             data-table-import: Dash DataTable Component
-            data-structure-import: str
-            data-store: str json formatted str for Store component
+            accordion: str
     """
     if contents is not None:
         content_type, content_string = contents.split(",")
@@ -314,14 +321,17 @@ def joiner(_, tag, keys):
 
     user_dataset = manager.get_data()
 
+    # if this line is enabled, the application uses a set defition that matches the test dataset, used for, disabled in production
     solution = {
         "dataset_id": 4,
         "col_name_user": "Tatb-Nr.",
         "col_name_catalog": "Tatb-Nr.",
     }
 
-    # if this line is enabled, the model uses the LLM, used in production, disabled for demo
-    # solution = mistral_retriever(catalog, user_dataset) # if this line is enabled, the model uses the LLM, used for
+    # if this line is enabled, the application uses the LLM, used in production, disabled for demo
+    # solution = mistral_retriever(
+    #     catalog, user_dataset
+    # )
 
     if solution is None:
         # return an error message via popup
